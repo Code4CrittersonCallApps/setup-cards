@@ -1,6 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="icon" href="data:,"><title>Setup Cards</title>
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="flip.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#0d1117;color:#e6edf3;touch-action:manipulation}
 .wrap{max-width:560px;margin:0 auto;padding:12px}h1{font-size:22px;margin:4px 0 2px}.sub{color:#8b949e;font-size:13px;margin-bottom:10px}
@@ -18,7 +19,7 @@ a{color:#79c0ff}.legend{font-size:12px;color:#8b949e;margin-top:4px}
 </style></head><body><div class="wrap">
 <div style="display:flex;justify-content:space-between;align-items:center"><h1>🃏 Setup Cards</h1><a href="https://code4crittersoncallapps.github.io/chart-caller/">Chart Caller →</a></div>
 <a href="cycles.html" class="chip" style="display:block;text-align:center;text-decoration:none;margin:6px 0;background:#3d2a00;border-color:#9e6a03">🔁 Cycles overview + gauges</a><a href="clocks.html" class="chip" style="display:block;text-align:center;text-decoration:none;margin:6px 0;background:#0b2e4a;border-color:#1f6feb">⏰ Clocks overlay: halving vs liquidity/business cycle</a><div class="sub">Name the setup from a real chart. Missed cards come back sooner.</div>
-<div class="decks" id="decks"></div>
+<div class="decks" id="decks"></div><button class="chip" id="ftbtn" style="width:100%;margin-bottom:6px;background:#3b1f5e;border-color:#8957e5">🙃 Flip Test: bias check drill</button>
 <div class="bar"><span id="prog"></span><span class="tools"><button id="shuf">🔀 Shuffle</button><button id="reset">Reset</button></span></div>
 <div class="card" id="card"></div>
 <div class="legend">Real daily prices (Yahoo Finance). Pivots are snapped to actual highs and lows. Front is cut before the outcome. Yellow line = 50W MA (SMA350d), red = 200W MA (SMA1400d). BTC before Sep 2014 is the blockchain.info daily average; dominance comes from CoinMarketCap.</div>
@@ -61,4 +62,28 @@ function grade(ok){const x=st(cur);S.n++;if(ok){x.box=Math.min(x.box+1,5);x.due=
 function observe(){if(ro)ro.disconnect();ro=new ResizeObserver(()=>{if(chart)requestAnimationFrame(()=>chart&&chart.timeScale().fitContent())});ro.observe($('cb'))}
 function next(){front()}$('shuf').onclick=()=>{shuffle=!shuffle;$('shuf').classList.toggle('chip');$('shuf').textContent=shuffle?'🔀 Shuffle on':'🔀 Shuffle';next()};
 $('reset').onclick=()=>{if(confirm('Reset progress?')){S={n:0,c:{},deck:S.deck};save();next()}};deckUI();next();
+const FT=JSON.parse(localStorage.getItem('sc_flip')||'{"n":0,"ok":0,"bull":0,"bear":0,"seen":0}');const ftSave=()=>localStorage.setItem('sc_flip',JSON.stringify(FT));
+function ftExplain(){$('card').innerHTML=`<div class="name">🙃 Why traders flip charts</div>
+<div class="sec">Your brain reads a chart through a story: "I own it", "BTC's going to 100k", "this coin's undervalued". Flipping the chart upside down strips that story out.</div>
+<div class="sec"><b>The rule</b>A real bullish setup should read <b>bearish</b> when flipped, and vice versa. If you call it bullish BOTH ways, you're seeing your bias, not the chart.</div>
+<div class="sec"><b>How the drill works</b>1) You see a real chart and call it bullish or bearish. 2) The same chart comes back flipped (green↔red, price axis mirrored) and you call it again. Opposite calls = consistent ✅. Same call both ways = bias flag ⚠️. Your bias score is saved on this phone.</div>
+<div class="sec"><b>Use it live</b>Before any trade, hit 🙃 Flip on the chart. If the flipped version looks like a short you'd take, your long is probably real.</div>
+<button class="flip" id="ftgo">Start Flip Test</button>`;FT.seen=1;ftSave();$('ftgo').onclick=ftRound}
+function ftScore(){return FT.n?`Bias consistency ${Math.round(100*FT.ok/FT.n)}% (${FT.ok}/${FT.n}) · bull-both-ways ${FT.bull} · bear-both-ways ${FT.bear}`:'No rounds yet'}
+function ftRound(){const pool=CARDS.filter(c=>c.deck!='Gauges');cur=pool[Math.floor(Math.random()*pool.length)];const prev=FLIP;let a1=null;
+ const ask=(stage)=>{$('card').innerHTML=`<div class="meta">Flip Test · step ${stage}/2 · ${ftScore()}</div><div class="chartbox" id="cb"></div><div class="q">${stage==1?'Bullish or bearish from here?':'Same chart, flipped. Bullish or bearish?'}</div>
+ <div class="big"><button class="got" data-v="bull">📈 Bullish</button><button class="miss" data-v="bear">📉 Bearish</button></div><button class="ch" id="ftwhy" style="margin-top:10px">ℹ️ Why flip?</button>`;
+ setFlip(stage==2);observe();draw(false);$('ftwhy').onclick=()=>{setFlip(prev);ftExplain()};
+ document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{if(stage==1){a1=b.dataset.v;ask(2)}else done(b.dataset.v)})};
+ const done=a2=>{const ok=a1!=a2;FT.n++;if(ok)FT.ok++;else FT[a1]++;ftSave();setFlip(false);
+  const real=cur.side=='Long'?'bull':'bear';
+  $('card').innerHTML=`<div class="name">${ok?'✅ Consistent':'⚠️ Bias flag'}</div><div class="meta">Normal: ${a1=='bull'?'📈 bullish':'📉 bearish'} · Flipped: ${a2=='bull'?'📈 bullish':'📉 bearish'}</div>
+  <div class="sec">${ok?'You read the flipped chart as the opposite. That means you read the structure, not a story.':`You called it ${a1=='bull'?'BULLISH':'BEARISH'} both ways up. The same structure can't be bullish AND its mirror image bullish, so something besides the chart is driving that call (${a1=='bull'?'a long bias or hopium':'a bear bias or fear'}). Look at the flipped version and ask what you'd do if you didn't know the coin.`}</div>
+  <div class="chartbox" id="cb"></div><div class="sec"><b>What actually happened</b>${cur.asset} · ${cur.setup} (${cur.side}) · ${cur.cut}. ${cur.outcome}</div>
+  <div class="sec"><b>Your call vs reality</b>${a1==real?'✅ Your un-flipped call matched the textbook direction.':'❌ Your un-flipped call was against the textbook direction.'}</div>
+  <div class="sec"><div class="stat">${ftScore()}${FT.bull>FT.bear+1?' · You lean BULL: double-check longs.':FT.bear>FT.bull+1?' · You lean BEAR: double-check shorts.':''}</div></div>
+  <div class="big"><button class="got" id="ftn">Next chart</button><button class="miss" id="ftx" style="background:#30363d">Back to cards</button></div>`;
+  observe();draw(true);$('ftn').onclick=ftRound;$('ftx').onclick=()=>front();window.scrollTo(0,0)};ask(1)}
+$('ftbtn').onclick=()=>FT.seen?ftRound():ftExplain();
+
 </script></body></html>

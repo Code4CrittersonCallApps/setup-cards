@@ -291,4 +291,4 @@ const c2=LightweightCharts.createChart($('c2'),{...OPT,timeScale:{borderVisible:
 for(const k in A)L(c2,A[k].map(p=>[946684800+p[0]*86400,p[1]]),cc[k],k=='2024'?3:2);$('lg2').innerHTML=Object.keys(cc).map(k=>`<span style="color:${cc[k]}">■ ${k} halving</span>`).join('');
 const c3=LightweightCharts.createChart($('c3'),{...OPT,rightPriceScale:{borderVisible:false}});L(c3,O.dom,'#d2a8ff');
 [c1,c2,c3].forEach(ch=>ch.timeScale().fitContent());new ResizeObserver(()=>[c1,c2,c3].forEach(ch=>ch.timeScale().fitContent())).observe(document.body);
-</script></body></html>
+</script><script src="https://code4crittersoncallapps.github.io/market-universe/nav.js" defer></script></body></html>
